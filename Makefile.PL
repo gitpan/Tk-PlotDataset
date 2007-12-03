@@ -1,20 +1,22 @@
-use strict;
-use warnings;
-use ExtUtils::MakeMaker;
+# Load the Module::Install bundled in ./inc/
+use inc::Module::Install;
 
-WriteMakefile(
-    NAME                => 'Tk::PlotDataset',
-    AUTHOR              => 'I.T. Dev Ltd. <Contact via website - http://www.itdev.co.uk>',
-    VERSION_FROM        => 'lib/Tk/PlotDataset.pm',
-    ABSTRACT_FROM       => 'lib/Tk/PlotDataset.pm',
-    PL_FILES            => {},
-    PREREQ_PM => {
-        'Test::More'      => 0,
-        'Tk::Canvas'      => 0,
-        'Tk::DialogBox'   => 0,
-        'Tk::BrowseEntry' => 0,
-        'Tk::Balloon'     => 0
-    },
-    dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-    clean               => { FILES => 'Tk-PlotDataset-*' },
-);
+# Define metadata
+name            'Tk-PlotDataset';
+all_from        'lib/Tk/PlotDataset.pm';
+abstract        'An extended version of the canvas widget for plotting 2D ' .
+                'line graphs. Plots have a legend and zooming capabilities.';
+
+# Specific dependencies
+requires        'Carp';
+requires        'POSIX';
+requires        'Tk::Canvas';
+requires        'Tk::Balloon';
+build_requires  'Test::More';
+build_requires  'Test::Pod'            => '1.22';
+build_requires  'Test::Pod::Coverage'  => '1.08';
+build_requires  'Pod::Coverage'        => '0.18';
+recommends      'Tk::LineGraphDataset';
+
+auto_install;
+WriteAll;

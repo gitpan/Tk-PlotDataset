@@ -1,4 +1,8 @@
 Revision history for Tk-PlotDataset
 
+1.01    30/11/2007
+        Improved support for log axes. Added extra options for formatting the
+        graph. Fixed a memory leak.
+
 1.00    16/04/2007
         First version. Modified version of the Tk::LineGraph module.
