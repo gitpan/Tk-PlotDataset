@@ -583,7 +583,7 @@ use base qw/Tk::Derived Tk::Canvas/;
 use Tk::Balloon;
 use vars qw($VERSION);
 
-$VERSION = '2.00';
+$VERSION = '2.01';
 
 Construct Tk::Widget 'PlotDataset';
 
