@@ -24,4 +24,4 @@ requires:
   POSIX: 0
   Tk::Balloon: 0
   Tk::Canvas: 0
-version: 2.01
+version: 2.02

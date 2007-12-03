@@ -1,5 +1,8 @@
 Revision history for Tk-PlotDataset
 
+2.02    03/12/2007
+        Convert files to Unix line separators. Fixed the failing pod.t test.
+
 2.01    03/12/2007
         Fixed the failing boilerplate.t test.
 

@@ -311,8 +311,6 @@ without moving the mouse.
 
 =head1 WIDGET METHODS
 
-=over 4
-
 The PlotDataset (or new) method creates a widget object. This object supports
 the configure and cget methods described in the Tk::options manpage, which can
 be used to enquire and modify the options described above (except -colors and
@@ -320,6 +318,8 @@ be used to enquire and modify the options described above (except -colors and
 Tk::Canvas class.
 
 In addition, the module provides its own methods, described below:
+
+=over 4
 
 =item $plot_dataset -> addDatasets ( dataset1 , dataset2 , ... )
 
@@ -454,7 +454,7 @@ option to omit non-valid points from the graph.
 
 =back
 
-=head1 COPYRIGHT
+=head1 LICENSE
 
 Copyright 2007 I.T. Dev Ltd.
 
@@ -583,7 +583,7 @@ use base qw/Tk::Derived Tk::Canvas/;
 use Tk::Balloon;
 use vars qw($VERSION);
 
-$VERSION = '2.01';
+$VERSION = '2.02';
 
 Construct Tk::Widget 'PlotDataset';
 
