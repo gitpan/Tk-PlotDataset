@@ -61,8 +61,8 @@ PlotDataset - An extended version of the canvas widget for plotting 2D line
 =head1 WIDGET-SPECIFIC OPTIONS
 
 In addition to all the Canvas options, the following option/value pairs are
-supported. All of these options can be set in the new() function when the
-PlotDataset object is created or by using the configure method:
+supported. All of these options can be set with the new() method when the
+PlotDataset object is created or by using configure():
 
 =over 4
 
@@ -93,7 +93,14 @@ already on the graph.
 
 An array of four numbers which are the width of the border between the plot area
 and the canvas. The order is North (top), East (right), South (bottom) and West
-(left).
+(left). By default, the borders are 25, 50, 100 and 50 respectively.
+
+=item -zoomButton
+
+Selects the mouse button used for zooming in and out. The value must be a
+number from 1 to 5 corresponding to the five potential mouse buttons, any other
+value will disable zooming on the graph. Typically the left mouse button is 1
+(default) and the right is 3.
 
 =item -scale
 
@@ -102,6 +109,8 @@ of the three axes - x, y, and y1. The order of the nine values is xMin, xMax,
 xStep, yMin, yMax, yStep, y1Min, y1Max and y1Step. The default values for all
 the axis are 0 to 100 with a step size of 10. This option will only affect axes
 where the auto-scale option has been turned off.
+
+An axis can be reversed by swapping its minimum and maximum values around.
 
 =item -plotTitle
 
@@ -125,15 +134,18 @@ there are datasets using the y1-axis.
 
 =item -xlabelPos
 
-The vertical position of the x-axis label, relative to the bottom of the plot area.
+The vertical position of the x-axis label, relative to the bottom of the plot
+area. The default for this value is 40.
 
 =item -ylabelPos
 
-The vertical position of the y-axis label, relative to the left of the plot area.
+The vertical position of the y-axis label, relative to the left of the plot
+area. The default for this value is 40.
 
 =item -y1labelPos
 
-The vertical position of the y1-axis label, relative to the right of the plot area.
+The vertical position of the y1-axis label, relative to the right of the plot
+area. The default for this value is 40.
 
 =item -xTickFormat
 
@@ -168,10 +180,11 @@ default.
 
 =item -legendPos
 
-A two element array which specifies the position of the legend. The first element
-specifies where the legend should be, either 'bottom' for below the chart, and
-'side' for the right side of the chart. The second element is the distance from
-the edge of the chart to the legend.
+A two element array which specifies the position of the legend. The first
+element specifies where the legend should be, either 'bottom' for below the
+chart, and 'side' for the right side of the chart. The second element is the
+distance from the edge of the chart to the legend. By default, the legend is 80
+pixels below the chart.
 
 =item -xType
 
@@ -190,8 +203,8 @@ linear.
 
 =item -logMin
 
-Applies to all logarithmic axes. A replacement value for zero or negative values
-that cannot be plotted on a logarithmic axis. The default value is 1e-3.
+Applies to all logarithmic axes. A replacement value for zero or negative
+values that cannot be plotted on a logarithmic axis. The default value is 1e-3.
 
 =item -fonts
 
@@ -263,7 +276,7 @@ hence are not documented in LineGraphDataset.
 =item -pointSize
 
 Sets the size of the points in the dataset's plot. The value can be any
-positive integer.
+positive integer. The default for this value is 3.
 
 =item -pointStyle
 
@@ -275,13 +288,14 @@ and diamond.
 =item -lineStyle
 
 A string which sets the pattern of the line for the dataset's plot. Valid
-patterns are normal (solid line), dot, dash, dotdash and none.
+patterns are normal (solid line), dot, dash, dotdash and none. By default, all
+lines will be solid.
 
 =item -fillPoint
 
 A boolean value which determines the appearance of the dataset's points. If the
 value is true (eg. 1), the point is a solid colour, otherwise (eg. 0) only an
-outline of the point is shown.
+outline of the point is shown. By default, all points will be filled.
 
 =back
 
@@ -303,11 +317,11 @@ over a point on the graph will display the point's coordinates in a help
 balloon (unless disabled). Individual points are not shown when there are more
 than 20 points in the plot.
 
-The left button (button-1) is used to zoom a graph. Move the cursor to one of
-the corners of the box into which you want the graph to zoom. Hold down the
-left button and move to the opposite corner. Release the left button and the
-graph will zoom into the box. To undo one level of zoom click the left button
-without moving the mouse.
+By default, the left button (button-1) is used to zoom a graph. Move the cursor
+to one of the corners of the box into which you want the graph to zoom. Hold
+down the mouse button and move to the opposite corner. Release the mouse button
+and the graph will zoom into the box. To undo one level of zoom click the mouse
+button without moving the cursor.
 
 =head1 WIDGET METHODS
 
@@ -394,7 +408,8 @@ can be either at the bottom or side of the chart.
 - Added -xTickFormat, -yTickFormat and -y1TickFormat options to configure the
 format of the number labels on each axis.
 
-- Removed all bindings for buttons 2 and 3.
+- Removed all bindings to the mouse buttons except for zooming. The mouse
+button used for zooming can be configured.
 
 =back
 
@@ -454,9 +469,9 @@ option to omit non-valid points from the graph.
 
 =back
 
-=head1 LICENSE
+=head1 COPYRIGHT
 
-Copyright 2007 I.T. Dev Ltd.
+Copyright 2012 I.T. Dev Ltd.
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
@@ -571,6 +586,14 @@ Plot 2D Axis
 # Documented the additional LineGraphDataset options supported by the module.
 # Removed support for the -noLine option in LineGraphDataset - its
 # functionality is now incorporated in the -lineStyle option.
+#
+# Version 13 by tc on 02/01/2008
+# Wraps legend when it is displayed at the bottom of the graph. Added the
+# -zoomButton option.
+#
+# Version 14 by tc on 02/11/2012
+# Added support for reversing an axis by swapping its minimum and maximum
+# scale values around.
 
 use strict;
 use warnings;
@@ -583,7 +606,7 @@ use base qw/Tk::Derived Tk::Canvas/;
 use Tk::Balloon;
 use vars qw($VERSION);
 
-$VERSION = '2.02';
+$VERSION = '2.03';
 
 Construct Tk::Widget 'PlotDataset';
 
@@ -640,7 +663,8 @@ sub Populate  ## no critic (NamingConventions::ProhibitMixedCaseSubs)
     -autoScaleX   => ['PASSIVE', 'autoscalex',   'AutoScaleX',   'On'],
     -autoScaleY1  => ['PASSIVE', 'autoscaley1',  'AutoScaleY1',  'On'],
     -logMin       => ['PASSIVE', 'logMin',       'LogMin',       0.001],
-    -redraw       => ['PASSIVE', 'redraw',       'Redraw',       undef]
+    -redraw       => ['PASSIVE', 'redraw',       'Redraw',       undef],
+    -zoomButton   => ['PASSIVE', 'zoomButton',   'ZoomButton',   1]
   );
 
   $self -> SUPER::Populate($args);
@@ -651,12 +675,8 @@ sub Populate  ## no critic (NamingConventions::ProhibitMixedCaseSubs)
   # OK, setup the dataSets list
   $self -> {-datasets}  = []; # empty array, will be added to
   $self -> {-zoomStack} = []; # empty array which will get the zoom stack
-  #Some bindings here
-  # use button 1 for zoom
-  $self -> Tk::bind('<Button-1>' ,        [\&_zoom, 0]);
-  $self -> Tk::bind('<ButtonRelease-1>' , [\&_zoom, 1]);
-  $self -> Tk::bind('<B1-Motion>' ,       [\&_zoom, 2]);
 
+  # Some bindings here
   # Add ballon help for the data points...
   my $parent = $self -> parent; # ANDY
   $self -> {Balloon} = $parent -> Balloon;
@@ -676,14 +696,20 @@ sub configure ## no critic (RequireFinalReturn) - Does not recognise return stat
 {
   my ($self, %args) = @_;
 
-  foreach my $array_item qw/-scale -xTickLabel -yTickLabel -y1TickLabel
-    -border -zoom -plotTitle -fonts -colors -legendPos/
+  foreach my $array_item (qw/-scale -xTickLabel -yTickLabel -y1TickLabel
+    -border -zoom -plotTitle -fonts -colors -legendPos/)
   {
     if (my $value = delete $args{$array_item})
     {
       $self -> {'Configure'}{$array_item} = $value;
     }
   }
+
+  if (my $value = delete $args{-zoomButton})
+  {
+    $self -> _set_zoom_button($value);
+  }
+
   if (my @args = %args)
   {
     return ($self -> SUPER::configure(@args));
@@ -732,6 +758,34 @@ sub _call_redraw_callback
       unless ref($sub) eq 'CODE';
     &$sub($self, @args);
   }
+  return (1);
+}
+
+sub _set_zoom_button
+{
+  my ($self, $new_button) = @_;
+
+  my $current_button = $self -> cget(-zoomButton);
+
+  # Remove current bindings if any exist
+  if (defined($current_button) and $current_button =~ m/^[1-5]$/)
+  {
+    $self -> Tk::bind('<Button-' . $current_button . '>',        undef);
+    $self -> Tk::bind('<ButtonRelease-' . $current_button . '>', undef);
+    $self -> Tk::bind('<B' . $current_button . '-Motion>',       undef);
+  }
+
+  # Apply new bindings if value is a valid mouse button
+  if ($new_button =~ m/^[1-5]$/)
+  {
+    $self -> Tk::bind('<Button-' . $new_button . '>',        [\&_zoom, 0]);
+    $self -> Tk::bind('<ButtonRelease-' . $new_button . '>', [\&_zoom, 1]);
+    $self -> Tk::bind('<B' . $new_button . '-Motion>',       [\&_zoom, 2]);
+  }
+
+  # Set -zoomButton option in object
+  $self -> {'Configure'}{-zoomButton} = $new_button;
+
   return (1);
 }
 
@@ -872,6 +926,13 @@ sub _zoom
           -tickFormat => $self -> cget('-y1TickFormat')
         );
       }
+
+      # Swap minimum and maximum values if their axis has been reversed
+      my $curr_scale = $self -> cget(-scale);
+      ($x_min_p, $x_max_p) = ($x_max_p, $x_min_p) if ($$curr_scale[0] > $$curr_scale[1]);
+      ($y_min_p, $y_max_p) = ($y_max_p, $y_min_p) if ($$curr_scale[3] > $$curr_scale[4]);
+      ($y1min_p, $y1max_p) = ($y1max_p, $y1min_p) if ($$curr_scale[6] > $$curr_scale[7]);
+
       # print "_zoom: ($x_min_p, $x_max_p, $x_intervals)  xTickLabels <$x_tick_labels> \n";
       $self -> configure(-xTickLabel => $x_tick_labels);
       $self -> configure(-yTickLabel => $y_tick_labels);
@@ -960,10 +1021,15 @@ sub _create_plot_axis  # start and end point of the axis, other args a => b
       $an = $side eq 's' ? 'n' : 's' if not $y_axis;
     }
     # do the ticks
-    $incr = 1 if (($stop - $start) < 1e-15); # AC: Rounding errors can cause an infinite loop when range is zero!
+    $incr = 1 if (abs($stop - $start) < 1e-15); # AC: Rounding errors can cause an infinite loop when range is zero!
     # This line above fixes this by detecting this case and fixing the increment to 1. (Of course, range should not be zero anyway!)
     #   print "ticks for loop $l = $start; $l <= $stop; $l += $incr\n"; # DEBUG
-    for (my $l = $start; $l <= $stop; $l += $incr)
+    for
+    (
+      my $l = $start;
+      ($start <= $stop) ? ($l <= $stop) : ($l >= $stop);
+      ($start <= $stop) ? ($l += $incr) : ($l -= $incr)
+    )
     {
       if ($y_axis)
       {
@@ -1025,7 +1091,7 @@ sub _create_plot_axis  # start and end point of the axis, other args a => b
           );
         }
       }
-      $z += $delta;  # only use of delta
+      ($start <= $stop) ? ($z += $delta) : ($z -= $delta); # only use of delta
     }
   } # ifend label this axis
 
@@ -1151,7 +1217,7 @@ sub _legends
   my $y_start = 0;
   my $legend_info = $self -> cget('-legendPos');
   my $borders = $self -> cget('-border');
-  unless (defined($legend_info) and $legend_info -> [0] ne 'bottom')
+  if (not defined($legend_info) or $legend_info -> [0] eq 'bottom')
   {
     $x_start = $borders -> [3];
     $y_start = $borders -> [2] - $legend_info -> [1];
@@ -1213,7 +1279,7 @@ sub _legends
         (
           $textX, $textY,
           -text => $text, -anchor => 'sw', -fill => $ds->get('-color'),
-          -font=>$fonts->[3],-tags=>[$tag]
+          -font => $fonts -> [3], -tags => [$tag]
         );
 
         # Find out how big text is
@@ -1267,11 +1333,20 @@ sub _legends
           );
         }
         my ($x1, $y1, $x2, $y2) = $self -> bbox($tag);
-        unless (defined($legend_info) and $legend_info -> [0] ne 'bottom')
+        if (not defined($legend_info) or $legend_info -> [0] eq 'bottom')
         {
           if ($x2)
           {
             $x_pos = $x2 + 10;
+            if ($y2)
+            {
+              # Wrap legend items if they are too wide to fit on the current line
+              if ($x_pos + ($x2 - $x1) >= $self -> width)
+              {
+                $x_pos = $x_start;
+                $y_pos = $y_pos - ($y2 - $y1);
+              }
+            }
           }
           else
           {
@@ -1545,7 +1620,7 @@ sub _draw_axis
 
   # xAxis first
   # tick stuff
-  my ($t_start, $t_stop, $interval) = ($s -> [0], $s -> [1], $s -> [2]);
+  my ($t_start, $t_stop, $interval) = ($s -> [0], $s -> [1], abs($s -> [2]));
   my $ticks = ($t_stop - $t_start) / $interval;
   my $a_length = $w - $wb - $eb;
   my $d = $a_length / $ticks;
@@ -1590,7 +1665,7 @@ sub _draw_axis
   # print "y axis label <$lab> \n";
   #YAxis now
   ($x_start, $y_start, $x_end, $y_end) = ($wb, $nb, $wb, $h-$sb);
-  ($t_start, $t_stop, $interval) = ($s -> [3], $s -> [4], $s -> [5]);
+  ($t_start, $t_stop, $interval) = ($s -> [3], $s -> [4], abs($s -> [5]));
   $interval = 10 if ($interval <= 0);
   $ticks = ($t_stop - $t_start) / $interval;
   $a_length = $h - $nb - $sb;
@@ -1628,7 +1703,7 @@ sub _draw_axis
       $lab = undef;
     }
     ($x_start, $y_start, $x_end, $y_end) = ($w-$eb, $nb, $w-$eb, $h-$sb);
-    ($t_start, $t_stop, $interval) = ($s -> [6], $s -> [7], $s -> [8]);
+    ($t_start, $t_stop, $interval) = ($s -> [6], $s -> [7], abs($s -> [8]));
     $interval = 10 if ($interval <= 0);
     $ticks = ($t_stop - $t_start) / $interval;
     $a_length = $h - $nb - $sb;

@@ -14,6 +14,7 @@ following features:
 - Axes can be automaically scaled or set by the code.
 - Optional second y-axis (Y1).
 - Axes can be linear or logrithmic.
+- Axes can be reversed to flip the plots.
 - Graphs have a legend.
 - Includes a feature for highlighting plots when the cursor is held over the
   plot or its name in the legend.
@@ -112,7 +113,7 @@ Currently there are no samples or tutorials for this module.
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2007 I.T. Dev Ltd.
+Copyright (C) 2012 I.T. Dev Ltd.
 
 This program is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.

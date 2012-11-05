@@ -1,5 +1,9 @@
 Revision history for Tk-PlotDataset
 
+2.03    05/11/2012
+        Added support for reversing an axis by swapping its minimum and maximum
+        scale values around.
+
 2.02    03/12/2007
         Convert files to Unix line separators. Fixed the failing pod.t test.
 
