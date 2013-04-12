@@ -1,5 +1,5 @@
 ---
-abstract: 'An extended version of the canvas widget for plotting 2D line graphs. Plots have a legend and zooming capabilities.'
+abstract: 'An extended version of the canvas widget for plotting 2D line graphs. Plots have a legend, zooming capabilities and the option to display error bars.'
 author:
   - 'I.T. Dev Ltd.'
 build_requires:
@@ -32,4 +32,4 @@ requires:
   perl: 5.00503
 resources:
   license: http://dev.perl.org/licenses/
-version: 2.03
+version: 2.04

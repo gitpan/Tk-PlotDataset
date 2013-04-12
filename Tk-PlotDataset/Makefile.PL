@@ -5,7 +5,8 @@ use inc::Module::Install;
 name            'Tk-PlotDataset';
 all_from        'lib/Tk/PlotDataset.pm';
 abstract        'An extended version of the canvas widget for plotting 2D ' .
-                'line graphs. Plots have a legend and zooming capabilities.';
+                'line graphs. Plots have a legend, zooming capabilities and ' .
+                'the option to display error bars.';
 
 # Specific dependencies
 requires        'Carp';

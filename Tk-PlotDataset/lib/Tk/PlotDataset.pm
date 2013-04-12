@@ -3,7 +3,8 @@ package Tk::PlotDataset;
 =head1 NAME
 
 PlotDataset - An extended version of the canvas widget for plotting 2D line
-              graphs. Plots have a legend and zooming capabilities.
+              graphs. Plots have a legend, zooming capabilities and the option
+              to display error bars.
 
 =head1 SYNOPSIS
 
@@ -14,10 +15,12 @@ PlotDataset - An extended version of the canvas widget for plotting 2D line
  my $main_window = MainWindow -> new;
 
  my @data1 = (0..25);
+ my @errors1 = map { rand(2) } ( 0..25 );
  my $dataset1 = LineGraphDataset -> new
  (
    -name => 'Data Set One',
    -yData => \@data1,
+   -yError => \@errors1,
    -yAxis => 'Y',
    -color => 'purple'
  );
@@ -201,6 +204,19 @@ linear.
 The scale type of the y1 axis. Can be linear or log. The default type is
 linear.
 
+=item -showError
+
+Should be set to a true value (eg. 1) to show the error bars or a false value
+(eg. 0) to hide them. By default, error bars will be automatically shown for
+datasets with error data.
+
+=item -maxPoints
+
+Sets the threshold at which the points on the plot will be marked. If the
+number of points on the plot is greater than this value then individual points
+will not be shown. Points for datasets with no line will always be shown. If
+points are shown on a plot then so will any associated error bars.
+
 =item -logMin
 
 Applies to all logarithmic axes. A replacement value for zero or negative
@@ -273,6 +289,15 @@ hence are not documented in LineGraphDataset.
 
 =over 4
 
+=item -yError
+
+Array of numeric values used to indicate the error, or uncertainty in the y-data.
+This is an optional array, but if it is specified it must be the same length as the
+-yData array. By default, Tk::PlotDataset will display error bars for any dataset
+with error data. Error values are assumed to be symmetrical i.e. positive error
+margin is the same as the negative error margin. Only the magnitude of the error
+data is used, so the sign of negative values will always be ignored.
+
 =item -pointSize
 
 Sets the size of the points in the dataset's plot. The value can be any
@@ -309,13 +334,16 @@ objects as lines onto a 2D graph. The axes can be automatically scaled or set by
 the code. The axes can have linear or logarithmic scales and there is also an
 option of an additional y-axis (y1).
 
+By default, plots for datasets which contain error data will include error bars.
+
 =head2 Behaviour
 
 When the mouse cursor passes over a plotted line or its entry in the legend,
 the line and its entry will turn red to help identify it. Holding the cursor
 over a point on the graph will display the point's coordinates in a help
-balloon (unless disabled). Individual points are not shown when there are more
-than 20 points in the plot.
+balloon (unless disabled). Individual points are not shown when the number of
+points in the plot is greater than the value set by the -maxPoints option. The
+default number of points is 20.
 
 By default, the left button (button-1) is used to zoom a graph. Move the cursor
 to one of the corners of the box into which you want the graph to zoom. Hold
@@ -411,6 +439,8 @@ format of the number labels on each axis.
 - Removed all bindings to the mouse buttons except for zooming. The mouse
 button used for zooming can be configured.
 
+- Support for plotting y-error bars added by Thomas Pissulla.
+
 =back
 
 A number of bugs in the original code have also been found and fixed:
@@ -471,7 +501,7 @@ option to omit non-valid points from the graph.
 
 =head1 COPYRIGHT
 
-Copyright 2012 I.T. Dev Ltd.
+Copyright 2013 I.T. Dev Ltd.
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
@@ -481,10 +511,15 @@ Clifford.
 
 =head1 AUTHOR
 
-Andy Culmer, Tim Culmer and Stephen Spain. Contact via website -
-http://www.itdev.co.uk
+Andy Culmer, Tim Culmer and Stephen Spain.
+Contact via website - http://www.itdev.co.uk
 
 Original code for the Tk::LineGraph module by Tom Clifford.
+
+=head1 CONTRIBUTORS
+
+Y-Error Bars by Thomas Pissulla.
+Contact via website - http://www.ikp.uni-koeln.de/~pissulla
 
 =head1 SEE ALSO
 
@@ -502,6 +537,8 @@ Plot 2D Axis
 # Authors  : ac - Andy Culmer, I.T. Dev Limited
 #            tc - Tim Culmer, I.T. Dev Limited
 #            ss - Stephen Spain, I.T. Dev Limited
+#
+#            pi - Thomas Pissulla, Institute for Nuclear Physics, University of Cologne
 #
 # Version 1 by ac on 19/12/2006
 # Initial Version, modified from Tk::LineGraph.
@@ -594,6 +631,9 @@ Plot 2D Axis
 # Version 14 by tc on 02/11/2012
 # Added support for reversing an axis by swapping its minimum and maximum
 # scale values around.
+#
+# Version 15 by pi on 11/04/2013
+# Added support for y-error bars.
 
 use strict;
 use warnings;
@@ -606,7 +646,7 @@ use base qw/Tk::Derived Tk::Canvas/;
 use Tk::Balloon;
 use vars qw($VERSION);
 
-$VERSION = '2.03';
+$VERSION = '2.04';
 
 Construct Tk::Widget 'PlotDataset';
 
@@ -662,6 +702,8 @@ sub Populate  ## no critic (NamingConventions::ProhibitMixedCaseSubs)
     -autoScaleY   => ['PASSIVE', 'autoscaley',   'AutoScaleY',   'On'],
     -autoScaleX   => ['PASSIVE', 'autoscalex',   'AutoScaleX',   'On'],
     -autoScaleY1  => ['PASSIVE', 'autoscaley1',  'AutoScaleY1',  'On'],
+    -showError    => ['PASSIVE', 'showError',    'ShowError',    1],
+    -maxPoints    => ['PASSIVE', 'maxPoints',    'MaxPoints',    20],
     -logMin       => ['PASSIVE', 'logMin',       'LogMin',       0.001],
     -redraw       => ['PASSIVE', 'redraw',       'Redraw',       undef],
     -zoomButton   => ['PASSIVE', 'zoomButton',   'ZoomButton',   1]
@@ -1297,7 +1339,7 @@ sub _legends
         }
         $self -> _draw_point
         (
-          $x + 20, $y - $text_height / 2,
+          $x + 20, $y - $text_height / 2, 0, 0,
           -fill => $fill, -pointStyle => $point_style, -pointSize => $point_size,
           -fillPoint => $fill_point, -tags => [$tag, $point_tag]
         );
@@ -1420,7 +1462,7 @@ sub _data_sets_min_max  # one argument, all or active
   $all = 1 if ($rescale and $rescale eq 'all');
   my ($first, $first1) = (0, 0);
   my ($y_max, $y_min, $x_max, $x_min, $y_max1, $y_min1) = (0, 0, 0, 0, 0, 0);
-  my ($x_data, $y_data);
+  my ($x_data, $y_data, $y_error);
   # Do x then y and y1
   foreach my $ds (@{$self -> {-datasets}})
   {
@@ -1446,7 +1488,11 @@ sub _data_sets_min_max  # one argument, all or active
   {
     if ($all or ($ds -> get('-active') == 1))
     {
+      my $a = 0;
+
       $y_data = $ds -> get('-yData');
+      $y_error = $ds -> get('-yError');
+
       if ($ds -> get('-yAxis') eq 'Y1')
       {
         if ($first1 == 0)
@@ -1454,10 +1500,19 @@ sub _data_sets_min_max  # one argument, all or active
           $y_max1 = $y_min1 = $y_data -> [0];
           $first1 = 1;
         }
+
         foreach my $e (@{$y_data})
         {
           $y_max1 = $e if ($e > $y_max1);
           $y_min1 = $e if ($e < $y_min1);
+
+          if ($y_error)
+          {
+            # Make all error values positive
+            $y_max1 = $e + abs($y_error -> [$a]) if ($e + abs($y_error -> [$a]) > $y_max1);
+            $y_min1 = $e - abs($y_error -> [$a]) if ($e - abs($y_error -> [$a]) < $y_min1);
+            $a++;
+          }
         }
       }
       else
@@ -1467,10 +1522,19 @@ sub _data_sets_min_max  # one argument, all or active
           $y_max = $y_min = $y_data -> [0];
           $first = 1;
         }
+
         foreach my $e (@{$y_data})
         {
           $y_max = $e if ($e > $y_max);
           $y_min = $e if ($e < $y_min);
+
+          if ($y_error)
+          {
+            # Make all error values positive
+            $y_max = $e+abs($y_error->[$a]) if ($e+abs($y_error->[$a]) > $y_max);
+            $y_min = $e-abs($y_error->[$a]) if ($e-abs($y_error->[$a]) < $y_min);
+            $a++;
+          }
         }
       }
     }
@@ -1914,6 +1978,8 @@ sub _draw_one_dataset  # index of the dataset to draw, widget args
   my $y_data = $ds -> get('-yData');
   my $x_data = $ds -> get('-xData');
   $x_data = [0..(scalar(@$y_data)-1)]  unless (defined($x_data));
+  my $y_error = $ds -> get('-yError');
+
   my $log_min = $self -> cget(-logMin);
   my $x = [];
   # if x-axis uses a log scale convert x data
@@ -1948,21 +2014,82 @@ sub _draw_one_dataset  # index of the dataset to draw, widget args
     $y = $y_data;
   }
 
+  my $dy = [];
+  if ($y_error)
+  {
+    my $a = 0;
+
+    # in case we have a log plot to do we have to log the errors as well
+    if
+    (
+      (($yax eq 'Y1') and ($self -> cget('-y1Type') eq 'log'))
+      or (($yax eq 'Y') and ($self -> cget('-yType') eq 'log'))
+    )
+    {
+      foreach my $e (@{$y_error})
+      {
+        # error values on log scale are larger below the point than above, i.e. we implement the concept of
+        # plus and minus error already here by building absolute values (y+dy; y-dy) and going on with them;
+        # just use positive errors
+
+        $dy -> [0] -> [$a] = log10($y_data -> [$a] + abs($e)); # pluserror
+
+        # if minuserror is below 0 trim to log_min
+        my $tmp;
+        if ($y_data -> [$a] - abs($e) <= 0)
+        {
+          $tmp = $log_min;
+        }
+        else
+        {
+          $tmp = $y_data -> [$a] - abs($e);
+        }
+
+        $dy -> [1] -> [$a] = log10($tmp); # minuserror
+        $a++;
+      }
+    }
+    else  # not log at all
+    {
+      foreach my $e (@{$y_error})
+      {
+        $dy -> [0] -> [$a] = $y_data -> [$a] + abs($e);
+        $dy -> [1] -> [$a] = $y_data -> [$a] - abs($e);
+        $a++;
+      }
+    }
+  }
+
   # need to make one array out of two
   my @xy_points;
-  # right here we need to go from data set coordinates to plot PIXEL coordinates
 
-  my ($xReady, $yReady) = $self -> _ds_to_plot_pixels($x, $y, $yax);
-  @xy_points =  $self -> _arrays_to_canvas_pixels('axis', $xReady, $yReady);
+  my @all_data;
+  my $dyp = [];
+  my $dym = [];
+
+  # right here we need to go from data set coordinates to plot PIXEL coordinates
+  my ($xReady, $yReady, $dyplusReady, $dyminusReady) = $self -> _ds_to_plot_pixels($x, $y, $dy, $yax);
+  (@all_data) = $self -> _arrays_to_canvas_pixels('axis', $xReady, $yReady, $dyplusReady, $dyminusReady);
+
+  # all data contains xy_points and plus and minus errors
+  for (my $a = 0; $a < (@all_data/4); $a++)
+  {
+    $xy_points[$a * 2]     = $all_data[$a * 4];
+    $xy_points[$a * 2 + 1] = $all_data[$a * 4 + 1];
+    $dyp -> [$a]           = $all_data[$a * 4 + 2];
+    $dym -> [$a]           = $all_data[$a * 4 + 3];
+  }
+
   # got to take care of the case where the data set is empty or just one point.
   return if (@xy_points == 0);
   if (@xy_points == 2)
   {
     # print "one point, draw a dot!\n";
     my ($xa, $ya) = ($xy_points[0], $xy_points[1]);
+
     $self -> _draw_point
     (
-      $xa, $ya, -pointStyle => $point_style, -pointSize => $point_size,
+      $xa, $ya, $dyp -> [0], $dym -> [0], -pointStyle => $point_style, -pointSize => $point_size,
       -fillPoint => $fill_point, -fill => $fill, -tags => [$tag, $tag . 'point']
     );
   }
@@ -1976,6 +2103,7 @@ sub _draw_one_dataset  # index of the dataset to draw, widget args
       -tags => [$tag],
       -xData => $x_data,
       -yData => $y_data,
+      -yError => [$dyp, $dym],
       -noLine => $no_line,
       -pointStyle => $point_style,
       -pointSize => $point_size,
@@ -2066,7 +2194,8 @@ sub _draw_one_dataset_b  # takes same arguments as createLinePlot confused
   my ($self, %args) = @_;
   my $xy_points = delete($args{'-data'});
   my $x_data = delete($args{'-xData'});           # Take the original data for use
-  my $y_data = delete($args{'-yData'});           # in the balloon popups.
+  my $y_data = delete($args{'-yData'});           # in the balloon popups
+  my $y_error = delete($args{'-yError'});         # and y errors if given
   my $no_line = delete($args{'-noLine'});          # Add a switch to allow points-only plots
   my $point_style = delete($args{'-pointStyle'});  # Add a switch to set point style
   my $point_size = delete($args{'-pointSize'});    # Add a switch to set point size
@@ -2076,11 +2205,11 @@ sub _draw_one_dataset_b  # takes same arguments as createLinePlot confused
   my $h = $self -> height;
   my $w = $self -> width;
   my $borders = $self -> cget(-border);
-  # How many points are inside of the plot window.
-  # mark the points if there are less that 20 points
+  # Data points are only shown if the dataset has no line or the number of
+  # points on the plot is less then or equal to the -maxPoints option
   my $points = @{$xy_points} / 2;
   my $inPoints = $self -> _count_in_points($xy_points);
-  if (($inPoints < 20) or $no_line)
+  if (($inPoints <= $self -> cget(-maxPoints)) or $no_line)
   {
     my $tags = $args{'-tags'};
     my $mainTag = $$tags[0];
@@ -2088,9 +2217,14 @@ sub _draw_one_dataset_b  # takes same arguments as createLinePlot confused
     {
       my $specificPointTag = $mainTag . "($i)";
       my $generalPointTag = $mainTag . 'point';
-      # print "Point tag = $point_tag\n"; # DEBUG
       my @pointTags = (@$tags, $specificPointTag, $generalPointTag);
-      my ($x, $y) = ($xy_points -> [$i * 2], $xy_points -> [$i * 2 + 1]);
+      my ($x, $y, $dyp, $dym) = (0, 0, 0, 0);
+      ($x, $y, $dyp, $dym) =
+      (
+        $xy_points -> [$i * 2], $xy_points -> [$i * 2 + 1],
+        $y_error -> [0] -> [$i], $y_error -> [1] -> [$i]
+      );
+
       if ($self -> cget('-balloons'))
       {
         $self -> {BalloonPoints} -> {$specificPointTag}
@@ -2106,7 +2240,7 @@ sub _draw_one_dataset_b  # takes same arguments as createLinePlot confused
       {
         $self -> _draw_point
         (
-          $x, $y, %args, -pointStyle => $point_style, -pointSize => $point_size,
+          $x, $y, $dyp, $dym, %args, -pointStyle => $point_style, -pointSize => $point_size,
           -fillPoint => $fill_point, -tags => \@pointTags
         )
       }
@@ -2117,12 +2251,74 @@ sub _draw_one_dataset_b  # takes same arguments as createLinePlot confused
 
 sub _draw_point
 {
-  # Draw a point
-  my ($self, $x, $y, %args) = @_;
+  # Draws a point (includes drawing and clipping of error bars).
+  my ($self, $x, $y, $dyp, $dym, %args) = @_;
 
   my $point_style = delete($args{-pointStyle});
   my $point_size = delete($args{-pointSize});
   my $fill_point = delete($args{-fillPoint});
+  my $fill = $args{-fill};
+
+  my $h = $self -> height;
+  my $w = $self -> width;
+  my $borders = $self -> cget(-border);
+  my $pluserror = -1;
+  my $minuserror = -1;
+  if
+  (
+    ($x >= $borders -> [3])
+    and ($x <= ($w - $borders -> [1]))
+    and ($y >= $borders -> [0])
+    and ($y <= ($h - $borders -> [2]))
+  )
+  {
+    if (($dym) >=  ($h - $borders->[2]))
+    {
+      # The error bar exceeds the lower border -> trim it;
+      $minuserror = ($h - $borders->[2]);
+    }
+    if (($dyp) <= $borders -> [0])
+    {
+      # The error bar exceeds the upper border -> trim it;
+      $pluserror = $borders->[0];
+    }
+  }
+
+  # widths of error bar ends (coupled to point size)
+  my $pluswidth = 0;
+  my $minuswidth = 0;
+
+  my $default_width = 3 + $point_size - 1.5;
+  my $default_thickness = (1 + $point_size - 1.5) * 0.5;
+
+  if ($minuserror == -1)
+  {
+    $minuserror = $dym; # keep default error bar
+    $minuswidth = $default_width unless ($dym == $y); # if error=0 de facto no error bar
+  }
+
+  if ($pluserror == -1)
+  {
+    $pluserror = $dyp;
+    $pluswidth = $default_width unless ($dyp == $y);
+  }
+
+  # draw error bars if not globally switched off
+  if (($self -> cget('-showError')) && ($dyp != 0) && ($dym != 0))
+  {
+    $self -> createLine
+    (
+      $x, $minuserror, $x, $pluserror, -width => $default_thickness, %args
+    );
+    $self -> createLine
+    (
+      $x-$pluswidth, $pluserror, $x+$pluswidth, $pluserror, -width => $default_thickness, %args
+    );
+    $self -> createLine
+    (
+      $x-$minuswidth, $minuserror, $x+$minuswidth, $minuserror, -width => $default_thickness, %args
+    );
+  }
 
   unless ($point_style)
   {
@@ -2434,7 +2630,7 @@ sub _to_world_points  # x, y in the Canvas system
   $x = 10 ** $x   if ($self -> cget('-xType')  eq 'log');
   $y = 10 ** $y   if ($self -> cget('-yType')  eq 'log');
   $y1 = 10 ** $y1 if ($self -> cget('-y1Type') eq 'log');
-  # print "_to_world_points: ($xp, $yp) to ($x, $y, $y1\n";
+  # print "_to_world_points: ($xp, $yp) to ($x, $y, $y1)\n";
   return ($x, $y, $y1);
 }
 
@@ -2457,19 +2653,21 @@ sub _to_canvas_pixels  # which, x, y
   }
 } # end _to_canvas_pixels
 
-sub _arrays_to_canvas_pixels  # which, x array ref, y array ref
+sub _arrays_to_canvas_pixels  # which, x array ref, y array ref also errors
 {
   # given x array ref and y aray ref generate the one array, xy in canvas pixels
-  my ($self, $which, $xa, $ya) = @_;
-  my @xy_out;
+  my ($self, $which, $xa, $ya, $dyap, $dyam) = @_;
+  my (@xy_out, my @dyp_out, my @dym_out);
   my $h = $self -> height;
   my $borders = $self -> cget(-border);
   if ($which eq 'axis')
   {
     for (my $i = 0; $i < @$ya; $i++)
     {
-      $xy_out[$i * 2]   = $xa -> [$i] + $borders -> [3];
-      $xy_out[$i * 2 + 1] = $h - ($ya -> [$i] + $borders -> [2]);
+      $xy_out[$i * 4]   = $xa -> [$i] + $borders -> [3];
+      $xy_out[$i * 4 + 1] = $h - ($ya -> [$i] + $borders -> [2]);
+      $xy_out[$i * 4 + 2] = $h - ($dyap -> [$i] + $borders -> [2]);
+      $xy_out[$i * 4 + 3] = $h - ($dyam -> [$i] + $borders -> [2]);
     }
     return (@xy_out);
   }
@@ -2479,7 +2677,11 @@ sub _ds_to_plot_pixels  # ref to xArray and yArray with ds values, which y axis
 {
   # ds is dataSet.  They are in world system
   # convert to Plot pixels, return ref to converted x array and y array
-  my ($self, $xa, $ya, $y_axis) = @_;
+  # if y-errors are given, also convert these and return two more arrays
+  # - ypluserror, yminuserror
+  # if no y-errors are given, set them virtually to zero and return the arrays as well
+
+  my ($self, $xa, $ya, $dya, $y_axis) = @_;
   my $s = $self -> cget(-scale);
   my ($x_min, $x_max, $y_min, $y_max);
   ($x_min, $x_max, $y_min, $y_max) = ($s -> [0], $s -> [1], $s -> [3], $s -> [4]);
@@ -2489,7 +2691,7 @@ sub _ds_to_plot_pixels  # ref to xArray and yArray with ds values, which y axis
   my ($nb, $eb, $sb, $wb) = ($borders -> [0], $borders -> [1], $borders -> [2], $borders -> [3]);
   my $h = $self -> height;
   my $w = $self -> width;
-  my (@xR, @yR);  # converted values to be returned
+  my (@xR, @yR, @dypR, @dymR);  # converted values to be returned (including errors)
   my $sfX = ($w-$eb-$wb) / ($x_max - $x_min);
   my $sfY = ($h-$nb-$sb) / ($y_max - $y_min);
   my ($x, $y);
@@ -2497,8 +2699,20 @@ sub _ds_to_plot_pixels  # ref to xArray and yArray with ds values, which y axis
   {
     push @xR, ($xa -> [$i] - $x_min) * $sfX if (defined($xa -> [$i]));
     push @yR, ($ya -> [$i] - $y_min) * $sfY if (defined($ya -> [$i]));
+
+    # if y-Errors are given, also convert to pixels
+    if ($dya -> [0])
+    {
+      push @dypR, ($dya -> [0] -> [$i] - $y_min) * $sfY;  # errors are absolute vals from here...
+      push @dymR, ($dya -> [1] -> [$i] - $y_min) * $sfY;
+    }
+    else
+    {
+      push @dypR, ($ya -> [$i] - $y_min)  * $sfY;  # if no errors are given, set them to zero
+      push @dymR, ($ya -> [$i] - $y_min)  * $sfY;
+    }
   }
-  return (\@xR, \@yR);
+  return (\@xR, \@yR, \@dypR, \@dymR);
 }
 
 sub _nice_range # input is min, max,

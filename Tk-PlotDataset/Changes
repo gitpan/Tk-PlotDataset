@@ -1,5 +1,9 @@
 Revision history for Tk-PlotDataset
 
+2.04    12/04/2013
+        Support for plotting y-error bars added by Thomas Pissulla.
+        Added a setting to control when the data points are marked on the plot.
+
 2.03    05/11/2012
         Added support for reversing an axis by swapping its minimum and maximum
         scale values around.
